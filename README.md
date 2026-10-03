@@ -145,7 +145,7 @@ flowchart TD
 
 ```bash
 # 1. Clone and install
-git clone https://github.com/researchsite/trustlens
+git clone https://github.com/researchsite/trustlens.git
 cd trustlens
 npm install
 
