@@ -47,15 +47,31 @@ function LegendPanel({ onClose }: { onClose: () => void }) {
         <div className="space-y-2">
           <p className="text-[11px] text-gray-600 uppercase tracking-wider font-semibold">Claim Labels</p>
           {[
-            { label: "VERIFIED", color: "#22c55e", desc: "Claim backed by manufacturer specs, certifications, or third-party tests" },
-            { label: "EXAGGERATED", color: "#f59e0b", desc: "Partially true but oversold — common in marketing copy" },
-            { label: "FABRICATED", color: "#ef4444", desc: "No credible evidence found — red flag for fraud" },
+            {
+              label: "VERIFIED",
+              color: "#22c55e",
+              desc: "Claim confirmed by manufacturer specs, certifications, or independent tests.",
+              example: "e.g. \"Active noise cancellation\" — confirmed in product datasheet.",
+            },
+            {
+              label: "EXAGGERATED",
+              color: "#f59e0b",
+              desc: "Partially true but inflated or unprovable. Common in marketing copy — not outright fraud, but misleading.",
+              example: "e.g. \"World's best sound quality\" — subjective, no third-party test cited.",
+            },
+            {
+              label: "FABRICATED",
+              color: "#ef4444",
+              desc: "No credible evidence found. The claim contradicts known facts or invents credentials. Strong fraud signal.",
+              example: "e.g. \"NASA-certified\" — no such certification program exists for consumer audio.",
+            },
           ].map((c) => (
-            <div key={c.label} className="flex items-start gap-3">
+            <div key={c.label} className="flex items-start gap-3 p-2.5 rounded-lg bg-gray-900/40">
               <span className="w-2 h-2 rounded-full shrink-0 mt-1" style={{ backgroundColor: c.color }} />
-              <div>
+              <div className="min-w-0">
                 <span className="text-xs font-bold" style={{ color: c.color }}>{c.label}</span>
-                <p className="text-[11px] text-gray-500 mt-0.5">{c.desc}</p>
+                <p className="text-[11px] text-gray-400 mt-0.5 leading-relaxed">{c.desc}</p>
+                <p className="text-[10px] mt-1 italic" style={{ color: c.color + "99" }}>{c.example}</p>
               </div>
             </div>
           ))}
@@ -105,7 +121,7 @@ function EmptyPanel() {
     <div className="flex flex-col items-center justify-center h-full gap-6 text-center select-none pointer-events-none">
       <div className="relative">
         <div className="w-24 h-24 rounded-full border-2 border-gray-800 flex items-center justify-center">
-          <TrustDial score={0} size={72} />
+          <TrustDial score={-1} size={72} />
         </div>
         <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-gray-900 border border-gray-700 flex items-center justify-center">
           <span className="text-[10px] text-gray-500">?</span>

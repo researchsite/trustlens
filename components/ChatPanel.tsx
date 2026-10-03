@@ -29,16 +29,23 @@ const SUGGESTIONS = [
 ];
 
 // Queries that typically expose low-trust / AVOID vendors
-const AVOID_DEMOS = [
-  "Buy AirPods Pro $39 online deals",
-  "Cheap Rolex watches authentic free shipping",
+// label = button text shown in UI; query = message actually sent to the pipeline
+const AVOID_DEMOS: { label: string; query: string }[] = [
+  {
+    label: "AirPods Pro $39 — is this Temu deal real?",
+    query: "AirPods Pro $39 https://www.temu.com/goods.html?goods_id=601099512468617",
+  },
+  {
+    label: "Cheap Rolex watches authentic free shipping",
+    query: "Cheap Rolex watches authentic free shipping",
+  },
 ];
 
-// Queries that frequently surface a highly-trusted second vendor (hidden gem)
-const HIDDEN_GEM_DEMOS = [
-  "Buy USB-C hub for MacBook Pro",
-  "Buy Anker portable charger 20000mAh",
-  "Buy Keychron mechanical keyboard",
+// Queries that surface a highly-trusted second vendor (hidden gem ≥70, within 10 pts of top)
+const HIDDEN_GEM_DEMOS: { label: string; query: string }[] = [
+  { label: "Sony WH-1000XM5 headphones", query: "Sony WH-1000XM5 headphones" },
+  { label: "iPhone 15 Pro best price",    query: "iPhone 15 Pro" },
+  { label: "Amazon Echo Dot 5th Gen",     query: "Amazon Echo Dot 5th Gen" },
 ];
 
 const DEMO_IMAGES = [
@@ -311,24 +318,24 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(
                   ))}
                   {/* Hidden Gem demos */}
                   <p className="text-[10px] text-gray-700 uppercase tracking-wider pt-1">💎 Hidden Gem examples</p>
-                  {HIDDEN_GEM_DEMOS.map((s) => (
+                  {HIDDEN_GEM_DEMOS.map((item) => (
                     <button
-                      key={s}
-                      onClick={() => sendQuery(s)}
+                      key={item.label}
+                      onClick={() => sendQuery(item.query)}
                       className="block w-full text-left text-[12px] text-gray-600 border border-purple-900/30 rounded-lg px-3 py-2 hover:border-purple-700/50 hover:text-purple-400 transition-all"
                     >
-                      💎 {s}
+                      💎 {item.label}
                     </button>
                   ))}
                   {/* AVOID demo section */}
                   <p className="text-[10px] text-gray-700 uppercase tracking-wider pt-1">⚠ AVOID detection examples</p>
-                  {AVOID_DEMOS.map((s) => (
+                  {AVOID_DEMOS.map((item) => (
                     <button
-                      key={s}
-                      onClick={() => sendQuery(s)}
+                      key={item.label}
+                      onClick={() => sendQuery(item.query)}
                       className="block w-full text-left text-[12px] text-gray-600 border border-red-900/30 rounded-lg px-3 py-2 hover:border-red-700/50 hover:text-red-400 transition-all"
                     >
-                      ⚠ {s}
+                      ⚠ {item.label}
                     </button>
                   ))}
                 </div>

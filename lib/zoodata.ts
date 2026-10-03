@@ -5,9 +5,9 @@
  * so the pipeline degrades gracefully to Tavily-only mode.
  */
 
-// Accept either ZOODATA_API_KEY (correct name) or ZOOWORK_API_KEY if it holds the hms_ key
-const _rawKey = process.env.ZOODATA_API_KEY ?? process.env.ZOOWORK_API_KEY ?? "";
-const KEY = _rawKey.startsWith("hms_") ? _rawKey : undefined;
+const KEY = (process.env.ZOODATA_API_KEY ?? "").startsWith("hms_")
+  ? process.env.ZOODATA_API_KEY
+  : undefined;
 const BASE = "https://api.zoodata.ai";
 
 function log(msg: string) {

@@ -7,7 +7,8 @@ export const maxDuration = 120;
 
 const nebius = createOpenAI({
   baseURL: process.env.NEBIUS_BASE_URL || "https://api.studio.nebius.com/v1/",
-  apiKey: process.env.NEBIUS_API_KEY!,
+  apiKey: process.env.NEBIUS_API_KEY || "unset",
+  compatibility: "compatible", // Nebius is OpenAI-compatible, not OpenAI itself
 });
 
 const SYSTEM_PROMPT = `You are TrustLens — an AI that scores vendor trustworthiness.
@@ -65,7 +66,15 @@ export async function POST(req: Request) {
         },
       }),
     },
+    onError: ({ error }) => {
+      console.error("[chat] streamText error:", error);
+    },
   });
 
-  return result.toDataStreamResponse();
+  return result.toDataStreamResponse({
+    getErrorMessage: (error) => {
+      console.error("[chat] response error:", error);
+      return error instanceof Error ? error.message : String(error);
+    },
+  });
 }

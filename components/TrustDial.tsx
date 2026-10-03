@@ -23,9 +23,11 @@ function verdictFromScore(score: number) {
 }
 
 export function TrustDial({ score, size = 120, animate = true }: Props) {
-  const [displayed, setDisplayed] = useState(animate ? 0 : score);
+  const empty = score < 0;
+  const [displayed, setDisplayed] = useState(animate ? 0 : Math.max(score, 0));
 
   useEffect(() => {
+    if (empty) { setDisplayed(0); return; }
     if (!animate) { setDisplayed(score); return; }
     let current = 0;
     const step = score / 40;
@@ -35,9 +37,9 @@ export function TrustDial({ score, size = 120, animate = true }: Props) {
       if (current >= score) clearInterval(id);
     }, 20);
     return () => clearInterval(id);
-  }, [score, animate]);
+  }, [score, animate, empty]);
 
-  const verdict = verdictFromScore(score);
+  const verdict = verdictFromScore(empty ? 50 : score);
   const { color, glow, label } = VERDICT_CONFIG[verdict];
   const r = (size / 2) * 0.72;
   const cx = size / 2;
@@ -77,28 +79,32 @@ export function TrustDial({ score, size = 120, animate = true }: Props) {
           />
         </svg>
         {/* Center text */}
-        <div
-          style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}
-        >
-          <span style={{ fontSize: size * 0.28, fontWeight: 800, color, lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>
-            {displayed}
-          </span>
-          <span style={{ fontSize: size * 0.09, color: "rgba(255,255,255,0.4)", letterSpacing: "0.05em" }}>
-            / 100
-          </span>
-        </div>
+        {!empty && (
+          <div
+            style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}
+          >
+            <span style={{ fontSize: size * 0.28, fontWeight: 800, color, lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>
+              {displayed}
+            </span>
+            <span style={{ fontSize: size * 0.09, color: "rgba(255,255,255,0.4)", letterSpacing: "0.05em" }}>
+              / 100
+            </span>
+          </div>
+        )}
       </div>
-      <span
-        style={{
-          fontSize: size * 0.1,
-          fontWeight: 700,
-          color,
-          letterSpacing: "0.12em",
-          textShadow: `0 0 12px ${glow}`,
-        }}
-      >
-        {label}
-      </span>
+      {!empty && (
+        <span
+          style={{
+            fontSize: size * 0.1,
+            fontWeight: 700,
+            color,
+            letterSpacing: "0.12em",
+            textShadow: `0 0 12px ${glow}`,
+          }}
+        >
+          {label}
+        </span>
+      )}
     </div>
   );
 }

@@ -7,6 +7,14 @@ import {
   type ReviewMetrics,
 } from "./zoodata";
 
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+function verdictFromScore(score: number): VendorScore["verdict"] {
+  if (score >= 85) return "HIGHLY_TRUSTED";
+  if (score >= 65) return "TRUSTED";
+  if (score >= 40) return "CAUTION";
+  return "AVOID";
+}
+
 // ─── Logger ──────────────────────────────────────────────────────────────────
 function log(step: string, detail: string, ms?: number) {
   const ts = new Date().toISOString().slice(11, 23);
@@ -17,7 +25,7 @@ function log(step: string, detail: string, ms?: number) {
 // ─── LLM client ──────────────────────────────────────────────────────────────
 const llm = new OpenAI({
   baseURL: process.env.NEBIUS_BASE_URL || "https://api.studio.nebius.com/v1/",
-  apiKey: process.env.NEBIUS_API_KEY!,
+  apiKey: process.env.NEBIUS_API_KEY || "unset",
   timeout: 30_000,
 });
 const MODEL = process.env.NEBIUS_MODEL || "Qwen/Qwen3-30B-A3B-Instruct-2507";
@@ -165,13 +173,14 @@ ${contentForLLM}`,
     ? parseFloat((1 - reviewMetrics!.reviewQualityScore).toFixed(2))
     : (parsed.ai_review_ratio ?? 0);
 
+  const rawScore = Math.max(0, Math.min(100, parsed.trust_score ?? 50));
   const score: VendorScore = {
     vendorName: vendor.title,
     name: vendor.title,
     url: vendor.url,
     snippet: vendor.content.slice(0, 200),
-    trustScore: parsed.trust_score ?? 50,
-    verdict: parsed.verdict ?? "CAUTION",
+    trustScore: rawScore,
+    verdict: verdictFromScore(rawScore), // always derive from score, never trust LLM string
     summary: parsed.summary ?? "",
     claims: parsed.claims ?? [],
     aiReviewRatio: finalAiRatio,
