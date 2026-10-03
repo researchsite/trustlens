@@ -6,7 +6,7 @@ export async function POST(req: Request) {
 
   const apiKey = process.env.NOVITA_API_KEY;
   const baseURL = process.env.NOVITA_BASE_URL || "https://api.novita.ai/v3/openai";
-  const model = process.env.NOVITA_VISION_MODEL || "llava-13b";
+  const model = process.env.NOVITA_VISION_MODEL || "qwen/qwen3-vl-30b-a3b-instruct";
 
   if (!apiKey) {
     return Response.json({ error: "Vision API not configured" }, { status: 503 });
@@ -42,8 +42,14 @@ export async function POST(req: Request) {
   if (!res.ok) {
     const err = await res.text();
     console.error("[vision] Novita error:", res.status, err);
+    // Distinguish balance errors from other failures so UI can show a clear message
+    const isBalance = res.status === 403 || err.includes("balance") || err.includes("BALANCE");
     return Response.json(
-      { error: "Vision API failed", detail: err, status: res.status },
+      {
+        error: isBalance ? "vision_no_balance" : "Vision API failed",
+        detail: isBalance ? "Novita account needs credit top-up at novita.ai" : err,
+        status: res.status,
+      },
       { status: 502 }
     );
   }

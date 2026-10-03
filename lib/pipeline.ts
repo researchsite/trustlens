@@ -1,5 +1,11 @@
 import OpenAI from "openai";
 import { cacheGet, cacheSet } from "./cache";
+import {
+  extractAsin, isAmazonUrl,
+  zooScrape, zooReviews,
+  calcReviewMetrics,
+  type ReviewMetrics,
+} from "./zoodata";
 
 // ─── Logger ──────────────────────────────────────────────────────────────────
 function log(step: string, detail: string, ms?: number) {
@@ -55,6 +61,25 @@ async function tavilySearch(
   return results;
 }
 
+// ─── ZooData enrichment ───────────────────────────────────────────────────────
+async function enrichWithZooData(url: string): Promise<{
+  pageContent: string | null;
+  reviewMetrics: ReviewMetrics | null;
+}> {
+  const asin = isAmazonUrl(url) ? extractAsin(url) : null;
+
+  // Run scrape + reviews in parallel (reviews only for Amazon)
+  const [scrape, reviews] = await Promise.all([
+    zooScrape(url),
+    asin ? zooReviews(asin) : Promise.resolve(null),
+  ]);
+
+  return {
+    pageContent: scrape?.markdown && scrape.markdown.length > 500 ? scrape.markdown.slice(0, 4000) : null,
+    reviewMetrics: reviews ? calcReviewMetrics(reviews) : null,
+  };
+}
+
 // ─── Single-shot vendor scorer ────────────────────────────────────────────────
 async function scoreVendor(
   vendor: TavilyResult,
@@ -66,6 +91,28 @@ async function scoreVendor(
   if (cached) { log("cache HIT", `vendor ${vendor.url}`); return { ...cached, isOriginalUrl }; }
 
   const t0 = Date.now();
+
+  // ── ZooData enrichment (runs in parallel with nothing else — it is the first step) ──
+  const { pageContent, reviewMetrics } = await enrichWithZooData(vendor.url);
+  const hasRealReviews = reviewMetrics !== null && reviewMetrics.total > 0;
+
+  // Use ZooData page content if richer than Tavily snippet; fall back to Tavily
+  const contentForLLM = pageContent ?? vendor.content.slice(0, 2000);
+
+  // Build review context block for the prompt
+  const reviewBlock = hasRealReviews
+    ? `
+REAL REVIEW DATA (from ZooData — use this instead of estimating):
+- Total reviews sampled: ${reviewMetrics!.total}
+- Verified purchases: ${Math.round(reviewMetrics!.verifiedRatio * 100)}%
+- Vine/incentivised reviews: ${Math.round(reviewMetrics!.vineRatio * 100)}%
+- Average rating: ${reviewMetrics!.avgRating.toFixed(1)}/5
+- Sample review texts:
+${reviewMetrics!.sampleTexts.map((t, i) => `  ${i + 1}. "${t}"`).join("\n")}
+
+For ai_review_ratio: use ${(1 - reviewMetrics!.reviewQualityScore).toFixed(2)} (calculated from real unverified/vine ratios — do NOT estimate from text).`
+    : `No real review data available — estimate ai_review_ratio from page content patterns.`;
+
   const res = await llm.chat.completions.create({
     model: MODEL,
     max_tokens: 600,
@@ -76,7 +123,7 @@ async function scoreVendor(
         content: `You are a trust analyst. Given a vendor page about a product, you must:
 1. Extract 3-4 verifiable claims (specs, certifications, measurements — not marketing)
 2. Classify each claim as VERIFIED (well-established fact), EXAGGERATED (partially true), or FABRICATED (no basis)
-3. Estimate ai_review_ratio (0-1): fraction of reviews that seem AI-generated (identical phrasing, excessive positivity, no specifics)
+3. Set ai_review_ratio (0-1): use the value from REAL REVIEW DATA if provided; otherwise estimate from text
 4. Calculate trust_score 0-100: base 50 + (verified_ratio×30) - (fabricated_ratio×40) - (ai_review_ratio×20), clamp 0-100
 5. Assign verdict: ≥85 HIGHLY_TRUSTED, ≥65 TRUSTED, ≥40 CAUTION, <40 AVOID
 6. Write a one-sentence summary of the vendor's trustworthiness
@@ -95,8 +142,11 @@ Return ONLY valid JSON (no markdown, no extra text):
         content: `Product: ${productName}
 Vendor: ${vendor.title}
 URL: ${vendor.url}
+
+${reviewBlock}
+
 Page content:
-${vendor.content.slice(0, 2000)}`,
+${contentForLLM}`,
       },
     ],
   });
@@ -110,6 +160,11 @@ ${vendor.content.slice(0, 2000)}`,
     parsed = { claims: [], ai_review_ratio: 0.3, trust_score: 50, verdict: "CAUTION", summary: "Analysis unavailable." };
   }
 
+  // If real review metrics exist, override the LLM's ai_review_ratio with ground truth
+  const finalAiRatio = hasRealReviews
+    ? parseFloat((1 - reviewMetrics!.reviewQualityScore).toFixed(2))
+    : (parsed.ai_review_ratio ?? 0);
+
   const score: VendorScore = {
     vendorName: vendor.title,
     name: vendor.title,
@@ -119,12 +174,15 @@ ${vendor.content.slice(0, 2000)}`,
     verdict: parsed.verdict ?? "CAUTION",
     summary: parsed.summary ?? "",
     claims: parsed.claims ?? [],
-    aiReviewRatio: parsed.ai_review_ratio ?? 0,
+    aiReviewRatio: finalAiRatio,
     isOriginalUrl,
   };
 
-  log("scoreVendor", `"${vendor.title.slice(0, 35)}" → ${score.trustScore} ${score.verdict}${isOriginalUrl ? " [ORIGINAL]" : ""}`, Date.now() - t0);
-  // Cache without isOriginalUrl flag so the same URL scored normally later is still cached
+  log(
+    "scoreVendor",
+    `"${vendor.title.slice(0, 35)}" → ${score.trustScore} ${score.verdict}${hasRealReviews ? " [real-reviews]" : ""}${isOriginalUrl ? " [ORIGINAL]" : ""}`,
+    Date.now() - t0
+  );
   cacheSet("vendor", cacheKey, { ...score, isOriginalUrl: false });
   return score;
 }
