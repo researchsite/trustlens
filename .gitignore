@@ -1,0 +1,19 @@
+# Private — never commit
+_private/
+
+# Dependencies
+node_modules/
+.next/
+
+# Environment
+.env
+.env.local
+.env*.local
+
+# Build
+dist/
+out/
+
+# OS
+.DS_Store
+Thumbs.db
