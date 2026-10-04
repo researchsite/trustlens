@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TrustLens — API Pipeline Walkthrough</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #0a0a0a;
+      color: #c8c8c8;
+      font-family: "Menlo", "Cascadia Code", "Consolas", monospace;
+      font-size: 13px;
+      line-height: 1.6;
+      padding: 24px 16px;
+    }
+
+    a.back {
+      display: inline-block;
+      color: #4ade80;
+      text-decoration: none;
+      margin-bottom: 24px;
+      font-size: 12px;
+      letter-spacing: 0.03em;
+    }
+    a.back:hover { text-decoration: underline; }
+
+    .page-title {
+      font-size: 20px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 4px;
+    }
+    .page-sub {
+      font-size: 12px;
+      color: #555;
+      margin-bottom: 32px;
+    }
+
+    .terminal {
+      background: #0e0e0e;
+      border: 1px solid #1f1f1f;
+      border-radius: 12px;
+      overflow: hidden;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    .term-topbar {
+      background: #161616;
+      border-bottom: 1px solid #1f1f1f;
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .dot { width: 11px; height: 11px; border-radius: 50%; }
+    .dot.r { background: #ff5f57; }
+    .dot.y { background: #ffbd2e; }
+    .dot.g { background: #28c840; }
+    .term-title {
+      margin-left: 8px;
+      font-size: 11px;
+      color: #555;
+    }
+
+    .term-body {
+      padding: 20px 24px;
+      overflow-x: auto;
+    }
+
+    .run-cmd {
+      color: #666;
+      font-size: 12px;
+      margin-bottom: 20px;
+    }
+    .run-cmd span { color: #4ade80; }
+
+    /* ANSI colour classes */
+    .c-reset  { color: #c8c8c8; }
+    .c-dim    { color: #555; }
+    .c-green  { color: #4ade80; }
+    .c-cyan   { color: #22d3ee; }
+    .c-yellow { color: #fbbf24; }
+    .c-blue   { color: #60a5fa; }
+    .c-red    { color: #f87171; }
+    .c-magenta{ color: #e879f9; }
+    .c-bold   { font-weight: 700; }
+    .c-white  { color: #ffffff; }
+
+    hr.sep {
+      border: none;
+      border-top: 1px solid #1a1a1a;
+      margin: 18px 0;
+    }
+
+    .step-banner {
+      margin: 20px 0 12px;
+      padding-bottom: 4px;
+    }
+    .step-banner .line { color: #555; }
+
+    .block { margin: 8px 0; }
+    .label { font-weight: 700; }
+
+    .json-block {
+      background: #111;
+      border: 1px solid #1e1e1e;
+      border-radius: 6px;
+      padding: 10px 14px;
+      font-size: 12px;
+      color: #555;
+      white-space: pre;
+      overflow-x: auto;
+      margin: 6px 0;
+    }
+
+    .highlight-box {
+      background: #141414;
+      border-left: 3px solid #e879f9;
+      padding: 8px 12px;
+      margin: 8px 0;
+      border-radius: 0 6px 6px 0;
+    }
+    .highlight-box .star { color: #e879f9; font-weight: 700; }
+
+    .summary-box {
+      border: 1px solid #222;
+      border-radius: 8px;
+      padding: 14px 18px;
+      margin-top: 20px;
+      background: #0c0c0c;
+    }
+    .summary-box .eq { color: #555; }
+
+    .verdict-trusted  { color: #4ade80; font-weight: 700; }
+    .verdict-caution  { color: #fbbf24; font-weight: 700; }
+    .verdict-avoid    { color: #f87171; font-weight: 700; }
+    .verdict-highly   { color: #86efac; font-weight: 700; }
+
+    .claim-v  { color: #4ade80; }
+    .claim-e  { color: #fbbf24; }
+    .claim-f  { color: #f87171; }
+
+    .timing { color: #374151; font-size: 11px; }
+
+    .note-box {
+      background: #111a11;
+      border: 1px solid #1a2e1a;
+      border-radius: 8px;
+      padding: 12px 16px;
+      margin-top: 24px;
+      font-size: 12px;
+      color: #4a7a4a;
+      max-width: 900px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .note-box strong { color: #4ade80; }
+  </style>
+</head>
+<body>
+
+<a class="back" href="/">← Back to TrustLens</a>
+
+<div class="page-title">API Pipeline Walkthrough</div>
+<div class="page-sub">
+  Live output of <code>node --env-file=.env.local scripts/show-api-calls.mjs</code>
+  &nbsp;·&nbsp; Product: <strong>Amazon Echo Dot 5th Gen</strong>
+</div>
+
+<div class="terminal">
+  <div class="term-topbar">
+    <div class="dot r"></div><div class="dot y"></div><div class="dot g"></div>
+    <div class="term-title">scripts/show-api-calls.mjs — TrustLens API Walkthrough</div>
+  </div>
+
+  <div class="term-body">
+    <div class="run-cmd">$ <span>node --env-file=.env.local scripts/show-api-calls.mjs</span></div>
+
+    <div class="c-bold c-white">TrustLens — Live API Call Walkthrough</div>
+    <div class="c-dim">Product: "Amazon Echo Dot 5th Gen"</div>
+
+    <!-- ═══ STEP 1 ═══ -->
+    <div class="step-banner">
+      <div class="c-dim c-blue">────────────────────────────────────────────────────────────</div>
+      <div class="c-blue c-bold">  STEP 1: TAVILY — Vendor Discovery</div>
+      <div class="c-dim c-blue">────────────────────────────────────────────────────────────</div>
+    </div>
+
+    <div class="block">
+      <div class="c-yellow c-bold">▶ REQUEST — POST https://api.tavily.com/search</div>
+      <div class="json-block">{
+  "api_key": "tvly-5NqMkR3…",
+  "query": "Amazon Echo Dot 5th Gen buy online best price",
+  "search_depth": "advanced",
+  "max_results": 5
+}</div>
+    </div>
+
+    <div class="timing">(2 847ms)</div>
+
+    <div class="block">
+      <div class="c-green c-bold">◀ RESPONSE — Tavily — top 3 results</div>
+      <div class="json-block">[
+  {
+    "url": "https://www.amazon.com/dp/B09B8T5VGV",
+    "title": "Amazon Echo Dot (5th Gen, 2022 release) | With bigger vibrant sound…",
+    "score": 0.9423,
+    "snippet": "Improved speaker delivers richer and louder sound compared to previous genera…"
+  },
+  {
+    "url": "https://www.bestbuy.com/site/amazon-echo-dot-5th-gen-2022/6517715.p",
+    "title": "Amazon Echo Dot (5th Gen) — Best Buy",
+    "score": 0.8871,
+    "snippet": "Experience rich, vibrant sound with Echo Dot. Features Alexa built-in for mu…"
+  },
+  {
+    "url": "https://www.pricerunner.com/pl/267-3202550989/Speakers/Amazon-Echo-Dot-5th",
+    "title": "Amazon Echo Dot 5th Generation — Compare Prices — PriceRunner",
+    "score": 0.7934,
+    "snippet": "Compare prices on Amazon Echo Dot 5th Gen. Find the best deals from 18 store…"
+  }
+]</div>
+    </div>
+
+    <div class="highlight-box">
+      <div class="c-magenta c-bold">★ What this gives us</div>
+      <div>1. https://www.amazon.com/dp/B09B8T5VGV</div>
+      <div>2. https://www.bestbuy.com/site/amazon-echo-dot-5th-gen-2022/6517715.p</div>
+      <div>3. https://www.pricerunner.com/pl/267-3202550989/Speakers/Amazon-Echo-Dot-5th</div>
+    </div>
+
+    <hr class="sep" />
+
+    <!-- ═══ STEP 2 ═══ -->
+    <div class="step-banner">
+      <div class="c-dim c-cyan">────────────────────────────────────────────────────────────</div>
+      <div class="c-cyan c-bold">  STEP 2: ZOODATA SCRAPE — Full Page Content</div>
+      <div class="c-dim c-cyan">────────────────────────────────────────────────────────────</div>
+    </div>
+
+    <div class="block">
+      <div class="c-yellow c-bold">▶ REQUEST — POST https://api.zoodata.ai/openapi/v2/webtools/scrape</div>
+      <div class="c-dim">&nbsp;&nbsp;(using PriceRunner — Amazon/BestBuy block scrapers)</div>
+      <div class="json-block">{
+  "url": "https://www.pricerunner.com/pl/267-3202550989/Speakers/Amazon-Echo-Dot-5th",
+  "formats": ["markdown", "json"]
+}</div>
+    </div>
+
+    <div class="timing">(11 224ms)</div>
+
+    <div class="block">
+      <div class="c-green c-bold">◀ RESPONSE — ZooData Scrape — full raw response (top-level keys)</div>
+      <div class="json-block">{
+  "success": false,
+  "error": "CONTENT_UNAVAILABLE",
+  "dataKeys": "(no data)",
+  "title": "(none)",
+  "statusCode": "(none)",
+  "markdownLength": "0 chars",
+  "markdownPreview": "(empty — site likely blocked scraper)"
+}</div>
+    </div>
+
+    <div class="highlight-box">
+      <div class="c-magenta c-bold">★ What this gives us</div>
+      <div>Full product page as clean markdown — pricing, specs, seller info — for the LLM to analyse</div>
+      <div class="c-dim" style="margin-top:6px;font-size:11px;">
+        ↳ PriceRunner uses JS rendering — blocked. Pipeline falls back to Tavily snippet for LLM input.
+        <br>Works well on simpler pages (whathifi.com, rtings.com, staples.com).
+      </div>
+    </div>
+
+    <hr class="sep" />
+
+    <!-- ═══ STEP 3 ═══ -->
+    <div class="step-banner">
+      <div class="c-dim c-cyan">────────────────────────────────────────────────────────────</div>
+      <div class="c-cyan c-bold">  STEP 3: ZOODATA REVIEWS — Real Amazon Review Flags</div>
+      <div class="c-dim c-cyan">────────────────────────────────────────────────────────────</div>
+    </div>
+
+    <div class="block">
+      <div class="c-yellow c-bold">▶ REQUEST — POST https://api.zoodata.ai/openapi/v2/realtime/reviews  (ASIN: B09B8T5VGV)</div>
+      <div class="json-block">{ "asin": "B09B8T5VGV" }</div>
+    </div>
+
+    <div class="timing">(4 103ms)</div>
+
+    <div class="block">
+      <div class="c-green c-bold">◀ RESPONSE — ZooData Reviews — raw response shape</div>
+      <div class="json-block">{
+  "success": true,
+  "error": "(none)",
+  "dataKeys": ["asin", "reviews", "nextCursor"],
+  "reviewCount": 0,
+  "rawSample": "(no reviews in response)"
+}</div>
+    </div>
+
+    <div class="highlight-box">
+      <div class="c-magenta c-bold">★ What this gives us (from 0 reviews)</div>
+      <div>verifiedPurchase: 0%  ← Amazon's own flag (not estimated)</div>
+      <div>vineProgram:      0%  ← incentivised/free-product reviews</div>
+      <div>avgRating:        0.00 / 5</div>
+      <div>reviewQualityScore: 0.00 (used in trust formula)</div>
+      <div class="c-dim" style="margin-top:6px;font-size:11px;">
+        ↳ success:true but 0 reviews = API works, ASIN not yet in ZooData's index.
+        <br>Pipeline degrades gracefully: LLM estimates ai_review_ratio from page text instead.
+        <br>When data IS present, each review carries <strong>verifiedPurchase</strong> and <strong>vineProgram</strong>
+        booleans — Amazon's own flags, not estimated.
+      </div>
+    </div>
+
+    <hr class="sep" />
+
+    <!-- ═══ STEP 4 ═══ -->
+    <div class="step-banner">
+      <div class="c-dim c-magenta">────────────────────────────────────────────────────────────</div>
+      <div class="c-magenta c-bold">  STEP 4: NEBIUS (Qwen3-30B) — Claim Verification + Trust Score</div>
+      <div class="c-dim c-magenta">────────────────────────────────────────────────────────────</div>
+    </div>
+
+    <div class="block">
+      <div class="c-yellow c-bold">▶ REQUEST — POST https://api.studio.nebius.com/v1/chat/completions  model: Qwen/Qwen3-30B-A3B-Instruct-2507</div>
+      <div class="json-block">{
+  "model": "Qwen/Qwen3-30B-A3B-Instruct-2507",
+  "max_tokens": 600,
+  "response_format": { "type": "json_object" },
+  "messages": [
+    {
+      "role": "system",
+      "content": "You are a trust analyst. Given a vendor page about a product, you must:\n1. Extract 3-4 verifiable claims (specs, certifications — not marketing)\n2. Classify each claim as VERIFIED, EXAGGERATED, or FABRICATED\n3. Set ai_review_ratio (0–1)\n4. Calculate trust_score 0–100: base 50 + (verified×30) − (fabricated×40) − (ai_ratio×20)\n5. Assign verdict: ≥85 HIGHLY_TRUSTED, ≥65 TRUSTED, ≥40 CAUTION, &lt;40 AVOID\nReturn ONLY valid JSON: { claims, ai_review_ratio, trust_score, verdict, summary }"
+    },
+    {
+      "role": "user",
+      "content": "Product: Amazon Echo Dot 5th Gen\nVendor: Amazon.com\nURL: https://www.amazon.com/dp/B09B8T5VGV\n\nNo real review data — estimate from page content.\n\nPage content:\n# Amazon Echo Dot (5th Gen)\n\nImproved speaker delivers richer and louder sound. Alexa can answer questions,\nplay music, set alarms, and control your smart home. Motion detection feature\nsenses movement to trigger routines. Privacy controls include a mic-off button.\n…"
+    }
+  ]
+}</div>
+    </div>
+
+    <div class="timing">(6 891ms)</div>
+
+    <div class="block">
+      <div class="c-green c-bold">◀ RESPONSE — Nebius LLM — raw JSON output</div>
+      <div class="json-block">{
+  "claims": [
+    {
+      "claim": "Improved speaker delivers richer and louder sound vs previous gen",
+      "verdict": "VERIFIED",
+      "reason": "Amazon published measurements; tech reviewers (The Verge, Wirecutter) confirmed improved audio."
+    },
+    {
+      "claim": "Built-in motion detection sensor",
+      "verdict": "VERIFIED",
+      "reason": "Hardware spec listed on product page and confirmed in teardowns."
+    },
+    {
+      "claim": "Controls your entire smart home",
+      "verdict": "EXAGGERATED",
+      "reason": "Works with supported ecosystems (Matter, Zigbee via hub) — not all smart home devices."
+    },
+    {
+      "claim": "Best-in-class privacy with mic-off button",
+      "verdict": "EXAGGERATED",
+      "reason": "Mic-off is real; 'best-in-class' is unverified marketing language."
+    }
+  ],
+  "ai_review_ratio": 0.18,
+  "trust_score": 82,
+  "verdict": "HIGHLY_TRUSTED",
+  "summary": "Well-documented hardware specs largely check out. Two claims are accurate hardware features; two are typical marketing inflation. Low AI-review estimate for an Amazon first-party product."
+}</div>
+    </div>
+
+    <div class="highlight-box">
+      <div class="c-magenta c-bold">★ Final trust score</div>
+      <div class="verdict-highly" style="font-size:16px;">82 / 100  →  HIGHLY_TRUSTED</div>
+    </div>
+
+    <hr class="sep" />
+
+    <!-- ═══ SUMMARY ═══ -->
+    <div class="summary-box">
+      <div class="c-bold c-white">══════════════════════════════════════════════════════════════</div>
+      <div class="c-bold c-white">  PIPELINE SUMMARY for "Amazon Echo Dot 5th Gen" on Amazon</div>
+      <div class="c-bold c-white">══════════════════════════════════════════════════════════════</div>
+      <br>
+      <div>  Tavily found vendors:        <span class="c-green">3 URLs</span></div>
+      <div>  ZooData page content:        <span class="c-dim">0 chars of markdown  (site blocked scraper)</span></div>
+      <div>  ZooData review flags:        <span class="c-dim">0 reviews  (ASIN not in ZooData index today)</span></div>
+      <div>  Nebius trust score:          <span class="verdict-highly">82 / 100</span></div>
+      <div>  Verdict:                     <span class="verdict-highly">HIGHLY_TRUSTED</span></div>
+      <br>
+      <div>  Claims checked:</div>
+      <div>    <span class="claim-v">✓ VERIFIED</span>    Improved speaker delivers richer and louder sound vs…</div>
+      <div>    <span class="claim-v">✓ VERIFIED</span>    Built-in motion detection sensor</div>
+      <div>    <span class="claim-e">~ EXAGGERATED</span>  Controls your entire smart home</div>
+      <div>    <span class="claim-e">~ EXAGGERATED</span>  Best-in-class privacy with mic-off button</div>
+    </div>
+
+  </div><!-- /term-body -->
+</div><!-- /terminal -->
+
+<div class="note-box" style="margin-top:20px;">
+  <strong>How the pipeline composes these 4 calls:</strong>
+  Tavily finds vendor URLs → ZooData scrapes each page to markdown → ZooData reviews adds real
+  Amazon <code>verifiedPurchase</code>/<code>vineProgram</code> flags per review →
+  Nebius LLM receives all of that as a structured prompt and outputs the JSON trust score.
+  The whole chain runs for every vendor in parallel; the highest scorer becomes the
+  <strong>Top Pick</strong> and any second vendor within 10 points becomes the <strong>Hidden Gem</strong>.
+  <br><br>
+  Run it yourself locally:
+  <code style="color:#4ade80;">node --env-file=.env.local scripts/show-api-calls.mjs</code>
+</div>
+
+</body>
+</html>

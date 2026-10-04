@@ -318,25 +318,29 @@ export default function Home() {
     <div className="flex flex-col h-screen bg-[#0a0a0a] text-white overflow-hidden">
       {/* Header */}
       <header className="shrink-0 flex items-center gap-3 px-6 py-3 border-b border-gray-800/60 bg-gray-950/80 backdrop-blur">
-        <span className="text-xl font-black tracking-tight bg-gradient-to-r from-green-400 to-emerald-300 bg-clip-text text-transparent">
+        <button
+          onClick={handleClear}
+          className="text-xl font-black tracking-tight bg-gradient-to-r from-green-400 to-emerald-300 bg-clip-text text-transparent hover:opacity-80 transition-opacity cursor-pointer"
+        >
           TrustLens
-        </span>
+        </button>
         <span className="text-xs text-gray-700 border border-gray-800 rounded px-1.5 py-0.5">BETA</span>
         <span className="hidden md:inline text-xs text-gray-700 ml-1">
           AI Commerce Gallery · 122 Riley Ave, SF
         </span>
         <Link
+          href="/api-walkthrough.html"
+          target="_blank"
+          className="ml-auto text-xs text-gray-600 hover:text-cyan-400 transition-colors mr-4"
+        >
+          API Pipeline →
+        </Link>
+        <Link
           href="/what-next"
-          className="ml-auto text-xs text-gray-600 hover:text-green-400 transition-colors mr-4"
+          className="text-xs text-gray-600 hover:text-green-400 transition-colors mr-4"
         >
           What&apos;s Next →
         </Link>
-        <button
-          onClick={handleClear}
-          className="text-xs text-gray-600 hover:text-gray-400 transition-colors"
-        >
-          ✕ Clear
-        </button>
       </header>
 
       {/* Body */}
