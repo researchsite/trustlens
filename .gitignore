@@ -19,5 +19,10 @@ out/
 .DS_Store
 Thumbs.db
 
+# Local tools
+plumber.exe
+.claude/
+.entire/
+
 .vercel
 .env*
