@@ -2,9 +2,10 @@ name: Security Audit
 
 on:
   push:
-    branches: [main]
+    branches: [master]
   schedule:
     - cron: '0 9 * * 1'  # Every Monday 9am UTC
+  workflow_dispatch: # allows manual trigger from GitHub Actions UI
 
 permissions:
   contents: read
